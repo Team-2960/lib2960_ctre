@@ -42,7 +42,8 @@ public class MotorMechTalonFX extends MotorMechanismBase {
     
     public final MotorMechTalonFXSettings settings;
 
-    private TalonFX[] motors;               /**< List of motors */
+    private TalonFX[] motors;                       /**< List of motors */
+    private MotorOutputConfigs[] motor_configs;     /**< List of motor output configurations */
 
     private Encoder quad_encoder;           /**< Quadrature Encoder */
     private DutyCycleEncoder abs_encoder;   /**< Absolute Encoder */
@@ -58,21 +59,22 @@ public class MotorMechTalonFX extends MotorMechanismBase {
 
         // Initialize Motors
         motors = new TalonFX[settings.motor_settings.length];
+        motor_configs = new MotorOutputConfigs[settings.motor_settings.length];
 
         for(int i = 0; i < motor_count; i++) {
             motors[i] = new TalonFX(settings.motor_settings[i].id);
 
             // Get current motor configuration
             TalonFXConfigurator configurator = motors[i].getConfigurator();
-            MotorOutputConfigs config = new MotorOutputConfigs();
-            configurator.refresh(config);
+            motor_configs[i] = new MotorOutputConfigs();
+            configurator.refresh(motor_configs[i]);
 
             // Ovedride Motor Configurations
-            config.Inverted = settings.motor_settings[i].inverted ? 
+            motor_configs[i].Inverted = settings.motor_settings[i].inverted ? 
                 InvertedValue.Clockwise_Positive : InvertedValue.CounterClockwise_Positive;
 
             // Update motor configuration
-            configurator.apply(config);
+            configurator.apply(motor_configs[i]);
         }
         
         // Initialize Encoders
@@ -92,17 +94,18 @@ public class MotorMechTalonFX extends MotorMechanismBase {
      * @param   enable  true to enable brake mode. False to disable brake mode.
      */
     public void setBrakeMode(boolean enabled) {
-        for(var motor : motors) {
+        for(int i = 0; i < motors.length; i++) {
             // Get current motor configuration
-            TalonFXConfigurator configurator = motor.getConfigurator();
-            MotorOutputConfigs config = new MotorOutputConfigs();
-            configurator.refresh(config);
-
+            TalonFXConfigurator configurator = motors[i].getConfigurator();
+            
             // Ovedride Motor Configurations
-            config.NeutralMode = enabled ? NeutralModeValue.Brake : NeutralModeValue.Coast;
+            NeutralModeValue mode = enabled ? NeutralModeValue.Brake : NeutralModeValue.Coast;
+            if(mode != motor_configs[i].NeutralMode) {
+                motor_configs[i].NeutralMode = mode;
 
-            // Update motor configuration
-            configurator.apply(config);
+                // Update motor configuration
+                configurator.apply(motor_configs[i]);
+            }
         }
     }
 
